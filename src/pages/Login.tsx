@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-// PERUBAHAN DI SINI: Tambahkan 'useNavigate' di impor.
+// PERUBAHAN 1: Impor useNavigate
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/button';
@@ -17,9 +17,8 @@ interface LoginFormData {
 
 export default function Login() {
   const { user, signIn } = useAuth();
-  // PERUBAHAN DI SINI: Dapatkan fungsi useNavigate.
-  const navigate = useNavigate(); 
-  
+  // PERUBAHAN 2: Inisialisasi hook navigate
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     password: ''
@@ -28,7 +27,7 @@ export default function Login() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in (Initial load check)
+  // Pengalihan ini sudah benar jika pengguna sudah login (misalnya me-refresh halaman)
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -39,7 +38,7 @@ export default function Login() {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
+    // Hapus error ketika pengguna mulai mengetik
     if (error) setError('');
   };
 
@@ -57,12 +56,13 @@ export default function Login() {
     try {
       const result = await signIn(formData.username, formData.password);
       
-      // PERUBAHAN DI SINI: Navigasi eksplisit setelah sukses
+      // PERUBAHAN 3: Logika navigasi eksplisit setelah login sukses
       if (result.success) {
-        // Navigasi ke halaman dashboard dan ganti entri di history
+        // Jika signIn berhasil, paksa navigasi ke dashboard
         navigate('/dashboard', { replace: true });
-        return; // Hentikan eksekusi
+        return; // Hentikan eksekusi lebih lanjut
       } else {
+        // Jika gagal, tampilkan error
         setError(result.error || 'Login gagal');
       }
     } catch (err) {
