@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+// PERUBAHAN DI SINI: Tambahkan 'useNavigate' di impor.
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -16,6 +17,9 @@ interface LoginFormData {
 
 export default function Login() {
   const { user, signIn } = useAuth();
+  // PERUBAHAN DI SINI: Dapatkan fungsi useNavigate.
+  const navigate = useNavigate(); 
+  
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     password: ''
@@ -24,7 +28,7 @@ export default function Login() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
+  // Redirect if already logged in (Initial load check)
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -53,7 +57,12 @@ export default function Login() {
     try {
       const result = await signIn(formData.username, formData.password);
       
-      if (!result.success) {
+      // PERUBAHAN DI SINI: Navigasi eksplisit setelah sukses
+      if (result.success) {
+        // Navigasi ke halaman dashboard dan ganti entri di history
+        navigate('/dashboard', { replace: true });
+        return; // Hentikan eksekusi
+      } else {
         setError(result.error || 'Login gagal');
       }
     } catch (err) {
