@@ -14,7 +14,7 @@ import KpiTargets from './pages/kpi/KpiTargets';
 
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: '/login',
     element: <Login />,
   },
   {
@@ -26,7 +26,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { 
-        path: '/dashboard', 
+        index: true,
         element: (
           <ProtectedRoute requiredPage="dashboard" requiredPermission="read">
             <Dashboard /> 
@@ -34,7 +34,15 @@ const router = createBrowserRouter([
         )
       },
       { 
-        path: '/laporan-harian', 
+        path: 'dashboard', 
+        element: (
+          <ProtectedRoute requiredPage="dashboard" requiredPermission="read">
+            <Dashboard /> 
+          </ProtectedRoute>
+        )
+      },
+      { 
+        path: 'laporan-harian', 
         element: (
           <ProtectedRoute requiredPage="laporan_harian" requiredPermission="create">
             <LaporanHarian /> 
@@ -42,7 +50,7 @@ const router = createBrowserRouter([
         )
       },
       { 
-        path: '/absensi', 
+        path: 'absensi', 
         element: (
           <ProtectedRoute requiredPage="absensi" requiredPermission="create">
             <Absensi /> 
@@ -50,7 +58,7 @@ const router = createBrowserRouter([
         )
       },
       { 
-        path: '/data-komisi', 
+        path: 'data-komisi', 
         element: (
           <ProtectedRoute requiredPage="data_komisi" requiredPermission="read">
             <DataKomisi /> 
@@ -58,7 +66,7 @@ const router = createBrowserRouter([
         )
       },
       { 
-        path: '/cashflow', 
+        path: 'cashflow', 
         element: (
           <ProtectedRoute requiredPage="cashflow" requiredPermission="read">
             <Cashflow /> 
@@ -66,7 +74,7 @@ const router = createBrowserRouter([
         )
       },
       { 
-        path: '/kpi-targets', 
+        path: 'kpi-targets', 
         element: (
           <ProtectedRoute requiredPage="kpi_targets" requiredPermission="read">
             <KpiTargets /> 
