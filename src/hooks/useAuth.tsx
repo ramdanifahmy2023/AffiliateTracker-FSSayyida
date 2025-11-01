@@ -1,12 +1,25 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, handleSupabaseError } from '../lib/supabase';
-import type { Database } from '../types/database';
 import { toast } from 'sonner';
 
-type User = Database['public']['Tables']['users']['Row'];
+// Profiles-based auth
+export type UserPosition = 'superadmin' | 'leader' | 'admin' | 'staff_host_live' | 'staff_content_creator' | 'viewer';
+
+type Profile = {
+  id: string;
+  full_name: string;
+  birth_date: string | null;
+  position: UserPosition;
+  username: string;
+  address: string | null;
+  start_date: string;
+  group_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 interface AuthContextType {
-  user: User | null;
+  user: Profile | null;
   loading: boolean;
   signIn: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
@@ -19,7 +32,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Access control matrix based on blueprint
+// Access control matrix remains the same as before
 const ACCESS_CONTROL = {
   dashboard: {
     superadmin: ['read'],
@@ -156,14 +169,12 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
     checkUser();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -178,21 +189,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const checkUser = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (session?.user) {
-        // Get user data from custom users table
-        const { data: userData, error } = await supabase
-          .from('users')
+        const { data: profile, error } = await supabase
+          .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
 
         if (error) {
-          console.error('Error fetching user data:', error);
           await supabase.auth.signOut();
           setUser(null);
         } else {
-          setUser(userData);
+          setUser(profile as Profile);
         }
       } else {
         setUser(null);
@@ -205,85 +213,59 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const signIn = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const signIn = async (username: string, password: string) => {
     try {
       setLoading(true);
 
-      // First, get user data by username
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', username)
-        .single();
-
-      if (userError || !userData) {
-        return {
-          success: false,
-          error: 'Username atau password salah'
-        };
-      }
-
-      // Use Supabase auth with email format (username@internal.app)
       const email = `${username}@internal.app`;
-      
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (authError) {
-        // If user doesn't exist in auth, create them
-        if (authError.message.includes('Invalid login credentials')) {
-          const { error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                user_id: userData.id,
-                username: userData.username,
-                full_name: userData.full_name,
-                position: userData.position
-              }
-            }
-          });
-
-          if (signUpError) {
-            return {
-              success: false,
-              error: handleSupabaseError(signUpError)
-            };
+        // If auth user not exists, sign up and then sign in
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { username }
           }
+        });
+        if (signUpError) return { success: false, error: handleSupabaseError(signUpError) };
 
-          // Try signing in again
-          const { data: retryAuthData, error: retryAuthError } = await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
-
-          if (retryAuthError) {
-            return {
-              success: false,
-              error: handleSupabaseError(retryAuthError)
-            };
-          }
-        } else {
-          return {
-            success: false,
-            error: handleSupabaseError(authError)
-          };
-        }
+        const { error: retryError } = await supabase.auth.signInWithPassword({ email, password });
+        if (retryError) return { success: false, error: handleSupabaseError(retryError) };
       }
 
-      setUser(userData);
-      toast.success(`Selamat datang, ${userData.full_name}!`);
-      
+      // Ensure profile exists
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authUser = sessionData.session?.user;
+      if (!authUser) return { success: false, error: 'Gagal mendapatkan sesi autentikasi' };
+
+      const { data: existing, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', authUser.id)
+        .single();
+
+      if (profileError || !existing) {
+        // Seed minimal profile data
+        await supabase.from('profiles').insert({
+          id: authUser.id,
+          full_name: username,
+          username,
+          role: 'staff',
+          position: 'staff_host_live'
+        } as any);
+      }
+
+      await checkUser();
+      toast.success(`Selamat datang, ${username}!`);
       return { success: true };
     } catch (error) {
       console.error('Sign in error:', error);
-      return {
-        success: false,
-        error: 'Terjadi kesalahan saat login'
-      };
+      return { success: false, error: 'Terjadi kesalahan saat login' };
     } finally {
       setLoading(false);
     }
@@ -293,7 +275,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
       setUser(null);
       toast.success('Berhasil logout');
     } catch (error) {
@@ -302,12 +283,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const hasPermission = (page: string, permission: 'create' | 'read' | 'update' | 'delete'): boolean => {
+  const hasPermission = (page: string, permission: 'create' | 'read' | 'update' | 'delete') => {
     if (!user) return false;
-    
     const pagePermissions = ACCESS_CONTROL[page as keyof typeof ACCESS_CONTROL];
     if (!pagePermissions) return false;
-    
     const userPermissions = pagePermissions[user.position];
     return userPermissions.includes(permission);
   };
@@ -317,20 +296,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const isLeader = user?.position === 'leader';
   const isSuperAdmin = user?.position === 'superadmin';
 
-  const value: AuthContextType = {
-    user,
-    loading,
-    signIn,
-    signOut,
-    hasPermission,
-    isStaff,
-    isAdmin,
-    isLeader,
-    isSuperAdmin
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, hasPermission, isStaff, isAdmin, isLeader, isSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   );
