@@ -212,31 +212,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false);
     }
   };
-
-  const signIn = async (username: string, password: string) => {
+const signIn = async (username: string, password: string) => {
     try {
       setLoading(true);
 
-      const email = `${username}@login.internal`;
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Kita tetap gunakan 'hack' email internal Anda
+      const email = `${username}@login.internal`; //
+      
+      // HANYA coba login
+      const { error: authError } = await supabase.auth.signInWithPassword({ //
         email,
         password
       });
 
       if (authError) {
-        // If auth user not exists, sign up and then sign in
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { username }
-          }
-        });
-        if (signUpError) return { success: false, error: handleSupabaseError(signUpError) };
-
-        const { error: retryError } = await supabase.auth.signInWithPassword({ email, password });
-        if (retryError) return { success: false, error: handleSupabaseError(retryError) };
+        // JANGAN mendaftar (sign up) pengguna baru secara otomatis.
+        // Hapus blok 'if (authError)' yang berisi supabase.auth.signUp
+        return { success: false, error: handleSupabaseError(authError) };
       }
+
+      // Hapus bagian 'ensure profile exists' dan 'insert' profil minimal.
+      // Kita akan menangani pembuatan profil secara manual di langkah berikutnya.
+
+      await checkUser(); // Panggil checkUser secara eksplisit
+      toast.success(`Selamat datang, ${username}!`);
+      return { success: true };
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { success: false, error: 'Terjadi kesalahan saat login' };
+    } finally {
+      setLoading(false);
+    }
+  };
 
       // Ensure profile exists
       const { data: sessionData } = await supabase.auth.getSession();
