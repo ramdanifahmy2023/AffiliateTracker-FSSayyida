@@ -32,7 +32,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Access control matrix remains the same as before
+// Access control matrix
 const ACCESS_CONTROL = {
   dashboard: {
     superadmin: ['read'],
@@ -175,10 +175,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
       if (event === 'SIGNED_OUT') {
         setUser(null);
-      } else if (event === 'SIGNED_IN') {
+        setLoading(false);
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        await checkUser();
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         await checkUser();
       }
     });
@@ -188,31 +193,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const checkUser = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Checking user...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       if (session?.user) {
-        // Penting: Pastikan kolom yang diambil di sini sesuai dengan type Profile Anda
+        console.log('Session found, fetching profile for user:', session.user.id);
+        
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('*') 
+          .select('*')
           .eq('id', session.user.id)
           .single();
 
         if (error) {
-          // Logikanya, jika sudah SIGNED_IN di auth.users tapi GAGAL ambil profiles,
-          // berarti profil belum ada atau RLS bermasalah (yang sudah kita perbaiki).
-          // Untuk amannya, kita paksa SIGN OUT agar user mencoba lagi.
+          console.error('Profile fetch error:', error);
+          // Jika error mengambil profile, sign out untuk konsistensi
           await supabase.auth.signOut();
           setUser(null);
-          // throw error; // Kita tidak melempar error untuk menghindari crash
-        } else {
-          // Asumsi: kolom 'role' dari Supabase di-mapping dengan benar ke 'position' di type Profile Anda.
-          // Berdasarkan type Profile Anda:
-          // type Profile = { ..., position: UserPosition; ... };
-          // Tetapi tabel Supabase Anda memiliki kolom 'role' dan 'position'. 
-          // Kita asumsikan 'position' adalah kolom yang benar.
+        } else if (profile) {
+          console.log('Profile found:', profile);
           setUser(profile as Profile);
+        } else {
+          console.log('No profile found');
+          setUser(null);
         }
       } else {
+        console.log('No session found');
         setUser(null);
       }
     } catch (error) {
@@ -223,32 +236,66 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  /**
-   * FUNGSI SIGN IN YANG TELAH DIPERBAIKI
-   * HANYA MENGGUNAKAN signInWithPassword dan TIDAK ADA LOGIKA signUp OTOMATIS
-   */
   const signIn = async (username: string, password: string) => {
     try {
       setLoading(true);
+      console.log('Attempting to sign in with username:', username);
 
-      // Ubah username menjadi email internal sesuai kebutuhan Supabase Auth
-      const email = `${username}@login.internal`; 
+      // Konversi username ke email internal
+      const email = `${username}@login.internal`;
       
-      // Lakukan Sign In
-      const { error: authError } = await supabase.auth.signInWithPassword({ 
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ 
         email,
         password
       });
 
       if (authError) {
-        // Jika login gagal (e.g., kredensial salah, user tidak terdaftar di auth.users)
-        return { success: false, error: handleSupabaseError(authError) || 'Login gagal, periksa kredensial.' };
+        console.error('Auth error:', authError);
+        return { 
+          success: false, 
+          error: authError.message === 'Invalid login credentials' 
+            ? 'Username atau password salah' 
+            : handleSupabaseError(authError) || 'Login gagal'
+        };
       }
-      
-      // Jika Sign In berhasil, panggil checkUser untuk mengambil data profil
-      await checkUser(); 
-      toast.success(`Selamat datang, ${username}!`);
-      return { success: true };
+
+      if (data.user) {
+        console.log('Auth successful, user ID:', data.user.id);
+        
+        // Tunggu sebentar untuk memastikan session tersimpan
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Fetch profile langsung setelah login berhasil
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Profile fetch error after login:', profileError);
+          await supabase.auth.signOut();
+          return { 
+            success: false, 
+            error: 'Gagal mengambil data profil. Silakan coba lagi.' 
+          };
+        }
+
+        if (profile) {
+          console.log('Profile set after login:', profile);
+          setUser(profile as Profile);
+          toast.success(`Selamat datang, ${profile.full_name}!`);
+          return { success: true };
+        } else {
+          await supabase.auth.signOut();
+          return { 
+            success: false, 
+            error: 'Profil pengguna tidak ditemukan.' 
+          };
+        }
+      } else {
+        return { success: false, error: 'Login gagal' };
+      }
     } catch (error) {
       console.error('Sign in error:', error);
       return { success: false, error: 'Terjadi kesalahan umum saat login' };
@@ -259,6 +306,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setUser(null);
@@ -266,6 +314,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       console.error('Sign out error:', error);
       toast.error('Gagal logout');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -274,8 +324,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const pagePermissions = ACCESS_CONTROL[page as keyof typeof ACCESS_CONTROL];
     if (!pagePermissions) return false;
     const userPermissions = pagePermissions[user.position];
-    // Pastikan userPermissions adalah array sebelum menggunakan .includes
-    if (!Array.isArray(userPermissions)) return false; 
+    if (!Array.isArray(userPermissions)) return false;
     return userPermissions.includes(permission);
   };
 
