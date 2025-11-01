@@ -1,3 +1,4 @@
+export type UserRole = 'superadmin' | 'leader' | 'admin' | 'staff' | 'viewer';
 export type UserPosition = 'superadmin' | 'leader' | 'admin' | 'staff_host_live' | 'staff_content_creator' | 'viewer';
 export type PlatformType = 'shopee' | 'tiktok';
 export type AccountStatus = 'active' | 'temp_banned' | 'perm_banned';
@@ -16,68 +17,74 @@ export type AuditAction = 'create' | 'update' | 'delete';
 export interface Database {
   public: {
     Tables: {
-      groups: {
-        Row: {
-          id: string;
-          group_name: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          group_name: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          group_name?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      users: {
+      profiles: {
         Row: {
           id: string;
           full_name: string;
-          birth_date: string;
-          position: UserPosition;
+          birth_date: string | null;
+          role: UserRole;
           username: string;
-          password: string;
-          address: string;
-          start_work_date: string;
+          address: string | null;
+          start_date: string;
           group_id: string | null;
-          avatar_url: string | null;
           created_at: string;
           updated_at: string;
+          password: string | null;
+          position: UserPosition;
+          email?: string | null; // Tambahan kolom email
         };
         Insert: {
-          id?: string;
+          id: string; // Required untuk auth.users foreign key
           full_name: string;
-          birth_date: string;
-          position: UserPosition;
+          birth_date?: string | null;
+          role?: UserRole;
           username: string;
-          password: string;
-          address: string;
-          start_work_date: string;
+          address?: string | null;
+          start_date?: string;
           group_id?: string | null;
-          avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
+          password?: string | null;
+          position?: UserPosition;
+          email?: string | null;
         };
         Update: {
           id?: string;
           full_name?: string;
-          birth_date?: string;
-          position?: UserPosition;
+          birth_date?: string | null;
+          role?: UserRole;
           username?: string;
-          password?: string;
-          address?: string;
-          start_work_date?: string;
+          address?: string | null;
+          start_date?: string;
           group_id?: string | null;
-          avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
+          password?: string | null;
+          position?: UserPosition;
+          email?: string | null;
+        };
+      };
+      groups: {
+        Row: {
+          id: string;
+          name: string;
+          created_at: string;
+          updated_at: string;
+          group_name: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
+          group_name?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          created_at?: string;
+          updated_at?: string;
+          group_name?: string | null;
         };
       };
       devices: {
@@ -85,10 +92,10 @@ export interface Database {
           id: string;
           device_id: string;
           imei: string;
-          google_account: string;
-          purchase_date: string;
-          purchase_price: number;
-          screenshot_link: string;
+          google_account: string | null;
+          purchase_date: string | null;
+          purchase_price: number | null;
+          screenshot_link: string | null;
           group_id: string | null;
           created_at: string;
           updated_at: string;
@@ -97,10 +104,10 @@ export interface Database {
           id?: string;
           device_id: string;
           imei: string;
-          google_account: string;
-          purchase_date: string;
-          purchase_price: number;
-          screenshot_link: string;
+          google_account?: string | null;
+          purchase_date?: string | null;
+          purchase_price?: number | null;
+          screenshot_link?: string | null;
           group_id?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -109,10 +116,10 @@ export interface Database {
           id?: string;
           device_id?: string;
           imei?: string;
-          google_account?: string;
-          purchase_date?: string;
-          purchase_price?: number;
-          screenshot_link?: string;
+          google_account?: string | null;
+          purchase_date?: string | null;
+          purchase_price?: number | null;
+          screenshot_link?: string | null;
           group_id?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -125,7 +132,7 @@ export interface Database {
           email: string;
           password: string;
           username: string;
-          phone_number: string;
+          phone_number: string | null;
           account_status: AccountStatus;
           data_status: DataStatus;
           notes: string | null;
@@ -139,7 +146,7 @@ export interface Database {
           email: string;
           password: string;
           username: string;
-          phone_number: string;
+          phone_number?: string | null;
           account_status?: AccountStatus;
           data_status?: DataStatus;
           notes?: string | null;
@@ -153,7 +160,7 @@ export interface Database {
           email?: string;
           password?: string;
           username?: string;
-          phone_number?: string;
+          phone_number?: string | null;
           account_status?: AccountStatus;
           data_status?: DataStatus;
           notes?: string | null;
@@ -165,48 +172,63 @@ export interface Database {
       daily_reports: {
         Row: {
           id: string;
-          report_date: string;
-          group_id: string;
           user_id: string;
+          group_id: string;
           device_id: string;
-          account_username: string;
+          account_id: string;
+          report_date: string;
           shift: ShiftType;
-          product_category: ProductCategory;
+          category: string;
           live_status: LiveStatus;
-          opening_balance: number;
-          closing_balance: number;
+          starting_balance: number;
+          ending_balance: number;
+          starting_omzet: number;
+          ending_omzet: number;
           created_at: string;
           updated_at: string;
+          opening_balance: number | null;
+          closing_balance: number | null;
+          product_category: ProductCategory | null;
         };
         Insert: {
           id?: string;
-          report_date: string;
-          group_id: string;
           user_id: string;
+          group_id: string;
           device_id: string;
-          account_username: string;
+          account_id: string;
+          report_date?: string;
           shift: ShiftType;
-          product_category: ProductCategory;
-          live_status: LiveStatus;
-          opening_balance?: number;
-          closing_balance?: number;
+          category: string;
+          live_status?: LiveStatus;
+          starting_balance?: number;
+          ending_balance?: number;
+          starting_omzet?: number;
+          ending_omzet?: number;
           created_at?: string;
           updated_at?: string;
+          opening_balance?: number | null;
+          closing_balance?: number | null;
+          product_category?: ProductCategory | null;
         };
         Update: {
           id?: string;
-          report_date?: string;
-          group_id?: string;
           user_id?: string;
+          group_id?: string;
           device_id?: string;
-          account_username?: string;
+          account_id?: string;
+          report_date?: string;
           shift?: ShiftType;
-          product_category?: ProductCategory;
+          category?: string;
           live_status?: LiveStatus;
-          opening_balance?: number;
-          closing_balance?: number;
+          starting_balance?: number;
+          ending_balance?: number;
+          starting_omzet?: number;
+          ending_omzet?: number;
           created_at?: string;
           updated_at?: string;
+          opening_balance?: number | null;
+          closing_balance?: number | null;
+          product_category?: ProductCategory | null;
         };
       };
       commissions: {
@@ -216,11 +238,11 @@ export interface Database {
           period_week: PeriodWeek;
           period_month: number;
           period_year: number;
-          gross_commission: number;
-          net_commission: number;
-          liquid_commission: number;
-          created_at: string;
-          updated_at: string;
+          gross_commission: number | null;
+          net_commission: number | null;
+          liquid_commission: number | null;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -228,11 +250,11 @@ export interface Database {
           period_week: PeriodWeek;
           period_month: number;
           period_year: number;
-          gross_commission?: number;
-          net_commission?: number;
-          liquid_commission?: number;
-          created_at?: string;
-          updated_at?: string;
+          gross_commission?: number | null;
+          net_commission?: number | null;
+          liquid_commission?: number | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -240,9 +262,47 @@ export interface Database {
           period_week?: PeriodWeek;
           period_month?: number;
           period_year?: number;
+          gross_commission?: number | null;
+          net_commission?: number | null;
+          liquid_commission?: number | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+      };
+      commission_reports: {
+        Row: {
+          id: string;
+          account_id: string;
+          week_period: string;
+          start_date: string;
+          end_date: string;
+          gross_commission: number;
+          net_commission: number;
+          disbursed_commission: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          account_id: string;
+          week_period: string;
+          start_date: string;
+          end_date: string;
           gross_commission?: number;
           net_commission?: number;
-          liquid_commission?: number;
+          disbursed_commission?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          account_id?: string;
+          week_period?: string;
+          start_date?: string;
+          end_date?: string;
+          gross_commission?: number;
+          net_commission?: number;
+          disbursed_commission?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -258,8 +318,8 @@ export interface Database {
           category: CostCategory | null;
           description: string;
           created_by: string;
-          created_at: string;
-          updated_at: string;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -271,8 +331,8 @@ export interface Database {
           category?: CostCategory | null;
           description: string;
           created_by: string;
-          created_at?: string;
-          updated_at?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -284,40 +344,46 @@ export interface Database {
           category?: CostCategory | null;
           description?: string;
           created_by?: string;
-          created_at?: string;
-          updated_at?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
       };
       assets: {
         Row: {
           id: string;
+          name: string;
           purchase_date: string;
           purchase_price: number;
           quantity: number;
-          description: string;
-          group_id: string | null;
+          notes: string | null;
           created_at: string;
           updated_at: string;
+          group_id: string | null;
+          description: string | null;
         };
         Insert: {
           id?: string;
+          name: string;
           purchase_date: string;
           purchase_price: number;
           quantity?: number;
-          description: string;
-          group_id?: string | null;
+          notes?: string | null;
           created_at?: string;
           updated_at?: string;
+          group_id?: string | null;
+          description?: string | null;
         };
         Update: {
           id?: string;
+          name?: string;
           purchase_date?: string;
           purchase_price?: number;
           quantity?: number;
-          description?: string;
-          group_id?: string | null;
+          notes?: string | null;
           created_at?: string;
           updated_at?: string;
+          group_id?: string | null;
+          description?: string | null;
         };
       };
       debt_receivables: {
@@ -329,8 +395,8 @@ export interface Database {
           description: string;
           status: PaymentStatus;
           group_id: string | null;
-          created_at: string;
-          updated_at: string;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -340,8 +406,8 @@ export interface Database {
           description: string;
           status?: PaymentStatus;
           group_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -351,6 +417,41 @@ export interface Database {
           description?: string;
           status?: PaymentStatus;
           group_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+      };
+      debts: {
+        Row: {
+          id: string;
+          type: string;
+          amount: number;
+          description: string;
+          due_date: string | null;
+          status: string;
+          transaction_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          type: string;
+          amount: number;
+          description: string;
+          due_date?: string | null;
+          status?: string;
+          transaction_date?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          type?: string;
+          amount?: number;
+          description?: string;
+          due_date?: string | null;
+          status?: string;
+          transaction_date?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -359,62 +460,74 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          attendance_date: string;
-          check_in_time: string;
-          check_out_time: string | null;
+          check_in: string;
+          check_out: string | null;
+          date: string;
           created_at: string;
           updated_at: string;
+          attendance_date: string | null;
+          check_in_time: string | null;
+          check_out_time: string | null;
         };
         Insert: {
           id?: string;
           user_id: string;
-          attendance_date: string;
-          check_in_time: string;
-          check_out_time?: string | null;
+          check_in?: string;
+          check_out?: string | null;
+          date?: string;
           created_at?: string;
           updated_at?: string;
+          attendance_date?: string | null;
+          check_in_time?: string | null;
+          check_out_time?: string | null;
         };
         Update: {
           id?: string;
           user_id?: string;
-          attendance_date?: string;
-          check_in_time?: string;
-          check_out_time?: string | null;
+          check_in?: string;
+          check_out?: string | null;
+          date?: string;
           created_at?: string;
           updated_at?: string;
+          attendance_date?: string | null;
+          check_in_time?: string | null;
+          check_out_time?: string | null;
         };
       };
       kpi_targets: {
         Row: {
           id: string;
-          target_month: number;
-          target_year: number;
-          target_omset: number;
+          user_id: string | null;
+          group_id: string | null;
+          target_omzet: number;
           target_gross_commission: number;
           target_attendance_days: number;
-          group_id: string | null;
+          period_month: number;
+          period_year: number;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          target_month: number;
-          target_year: number;
-          target_omset: number;
-          target_gross_commission: number;
-          target_attendance_days: number;
+          user_id?: string | null;
           group_id?: string | null;
+          target_omzet?: number;
+          target_gross_commission?: number;
+          target_attendance_days?: number;
+          period_month: number;
+          period_year: number;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          target_month?: number;
-          target_year?: number;
-          target_omset?: number;
+          user_id?: string | null;
+          group_id?: string | null;
+          target_omzet?: number;
           target_gross_commission?: number;
           target_attendance_days?: number;
-          group_id?: string | null;
+          period_month?: number;
+          period_year?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -423,27 +536,68 @@ export interface Database {
         Row: {
           id: string;
           title: string;
-          file_url: string;
-          file_type: FileType;
-          uploaded_by: string;
+          description: string | null;
+          file_url: string | null;
+          link_url: string | null;
+          created_by: string;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           title: string;
-          file_url: string;
-          file_type: FileType;
-          uploaded_by: string;
+          description?: string | null;
+          file_url?: string | null;
+          link_url?: string | null;
+          created_by: string;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           title?: string;
-          file_url?: string;
-          file_type?: FileType;
-          uploaded_by?: string;
+          description?: string | null;
+          file_url?: string | null;
+          link_url?: string | null;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      transactions: {
+        Row: {
+          id: string;
+          transaction_type: TransactionType;
+          category: string;
+          expense_category: CostCategory | null;
+          amount: number;
+          description: string;
+          transaction_date: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          transaction_type: TransactionType;
+          category: string;
+          expense_category?: CostCategory | null;
+          amount: number;
+          description: string;
+          transaction_date?: string;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          transaction_type?: TransactionType;
+          category?: string;
+          expense_category?: CostCategory | null;
+          amount?: number;
+          description?: string;
+          transaction_date?: string;
+          created_by?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -452,32 +606,32 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          action: AuditAction;
-          table_name: string;
-          record_id: string;
-          old_data: any;
-          new_data: any;
-          timestamp: string;
+          action: string;
+          entity_type: string;
+          entity_id: string;
+          old_values: any | null;
+          new_values: any | null;
+          created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
-          action: AuditAction;
-          table_name: string;
-          record_id: string;
-          old_data?: any;
-          new_data: any;
-          timestamp?: string;
+          action: string;
+          entity_type: string;
+          entity_id: string;
+          old_values?: any | null;
+          new_values?: any | null;
+          created_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
-          action?: AuditAction;
-          table_name?: string;
-          record_id?: string;
-          old_data?: any;
-          new_data?: any;
-          timestamp?: string;
+          action?: string;
+          entity_type?: string;
+          entity_id?: string;
+          old_values?: any | null;
+          new_values?: any | null;
+          created_at?: string;
         };
       };
     };
@@ -485,55 +639,10 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      get_dashboard_stats: {
-        Args: {
-          p_start_date?: string;
-          p_end_date?: string;
-          p_group_ids?: string[];
-          p_user_ids?: string[];
-        };
-        Returns: any;
-      };
-      calculate_kpi_progress: {
-        Args: {
-          p_group_id?: string;
-          p_month?: number;
-          p_year?: number;
-        };
-        Returns: any;
-      };
-      get_omset_chart_data: {
-        Args: {
-          p_start_date?: string;
-          p_end_date?: string;
-          p_group_ids?: string[];
-          p_interval?: string;
-        };
-        Returns: any;
-      };
-      get_commission_chart_data: {
-        Args: {
-          p_start_date?: string;
-          p_end_date?: string;
-          p_group_ids?: string[];
-        };
-        Returns: any;
-      };
-      get_account_chart_data: {
-        Args: {
-          p_group_ids?: string[];
-        };
-        Returns: any;
-      };
-      get_group_performance_chart_data: {
-        Args: {
-          p_start_date?: string;
-          p_end_date?: string;
-        };
-        Returns: any;
-      };
+      [_ in never]: never;
     };
     Enums: {
+      user_role: UserRole;
       user_position: UserPosition;
       platform_type: PlatformType;
       account_status: AccountStatus;
