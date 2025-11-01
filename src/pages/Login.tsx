@@ -203,16 +203,17 @@ export default function Login() {
             </form>
 
             {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">
-                Demo Credentials:
-              </p>
-              <div className="text-xs text-gray-600 space-y-1">
-                <div>• Superadmin: <code className="bg-white px-1 rounded">superadmin@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
-                <div>• Leader: <code className="bg-white px-1 rounded">leader@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
-                <div>• Staff: <code className="bg-white px-1 rounded">staff@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
-              </div>
-            </div>
+           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+  <p className="text-sm font-medium text-gray-700 mb-2">
+    Demo Credentials:
+  </p>
+  <div className="text-xs text-gray-600 space-y-1">
+    <div>• Superadmin: <code className="bg-white px-1 rounded">superadmin1@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
+    <div>• Leader: <code className="bg-white px-1 rounded">leader1@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
+    <div>• Host: <code className="bg-white px-1 rounded">host1@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
+    <div>• Creator: <code className="bg-white px-1 rounded">creator1@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
+  </div>
+</div>
           </CardContent>
         </Card>
 
