@@ -16,12 +16,13 @@ type Profile = {
   group_id: string | null;
   created_at: string;
   updated_at: string;
+  avatar_url?: string; // Menambahkan avatar_url dari skema
 };
 
 interface AuthContextType {
   user: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>; // Diubah dari username ke email
   signOut: () => Promise<void>;
   hasPermission: (page: string, permission: 'create' | 'read' | 'update' | 'delete') => boolean;
   isStaff: boolean;
@@ -32,9 +33,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Access control matrix - tetap sama
+// Access control matrix
 const ACCESS_CONTROL = {
-  // ... (ACCESS_CONTROL tetap sama seperti sebelumnya)
   dashboard: {
     superadmin: ['read'],
     leader: ['read'],
@@ -242,7 +242,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       console.log('Attempting to sign in with email:', email);
 
-      // Login langsung dengan email yang diberikan
+      // HAPUS KONVERSI USERNAME
+      // const email = `${username}@login.internal`;
+      
       const { data, error: authError } = await supabase.auth.signInWithPassword({ 
         email,
         password
@@ -253,7 +255,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return { 
           success: false, 
           error: authError.message === 'Invalid login credentials' 
-            ? 'Email atau password salah' 
+            ? 'Email atau password salah' // Pesan diubah
             : handleSupabaseError(authError) || 'Login gagal'
         };
       }
