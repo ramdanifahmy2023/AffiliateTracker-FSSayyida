@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-// PERUBAHAN 1: Impor useNavigate
+import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/button';
@@ -16,8 +15,7 @@ interface LoginFormData {
 }
 
 export default function Login() {
-  const { user, signIn } = useAuth();
-  // PERUBAHAN 2: Inisialisasi hook navigate
+  const { user, signIn, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
@@ -27,9 +25,28 @@ export default function Login() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  // Pengalihan ini sudah benar jika pengguna sudah login (misalnya me-refresh halaman)
+  // Redirect jika user sudah login
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate('/', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
+  // Jika masih loading auth, tampilkan loading
+  if (authLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Memuat aplikasi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect jika sudah login
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,16 +73,14 @@ export default function Login() {
     try {
       const result = await signIn(formData.username, formData.password);
       
-      // PERUBAHAN 3: Logika navigasi eksplisit setelah login sukses
       if (result.success) {
-        // Jika signIn berhasil, paksa navigasi ke dashboard
-        navigate('/dashboard', { replace: true });
-        return; // Hentikan eksekusi lebih lanjut
+        // Login berhasil, navigasi akan ditangani oleh useEffect di atas
+        console.log('Login successful, user should be redirected');
       } else {
-        // Jika gagal, tampilkan error
         setError(result.error || 'Login gagal');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('Terjadi kesalahan saat login');
     } finally {
       setLoading(false);
