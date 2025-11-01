@@ -11,18 +11,19 @@ type Profile = {
   birth_date: string | null;
   position: UserPosition;
   username: string;
+  email?: string; // Tambahkan email sebagai optional field
   address: string | null;
   start_date: string;
   group_id: string | null;
   created_at: string;
   updated_at: string;
-  avatar_url?: string; // Menambahkan avatar_url dari skema
+  avatar_url?: string;
 };
 
 interface AuthContextType {
   user: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>; // Diubah dari username ke email
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   hasPermission: (page: string, permission: 'create' | 'read' | 'update' | 'delete') => boolean;
   isStaff: boolean;
@@ -220,7 +221,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(null);
         } else if (profile) {
           console.log('Profile found:', profile);
-          setUser(profile as Profile);
+          // Tambahkan email dari auth jika tidak ada di profile
+          const profileWithEmail = {
+            ...profile,
+            email: profile.email || session.user.email || ''
+          };
+          setUser(profileWithEmail as Profile);
         } else {
           console.log('No profile found');
           setUser(null);
@@ -241,9 +247,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       setLoading(true);
       console.log('Attempting to sign in with email:', email);
-
-      // HAPUS KONVERSI USERNAME
-      // const email = `${username}@login.internal`;
       
       const { data, error: authError } = await supabase.auth.signInWithPassword({ 
         email,
@@ -252,12 +255,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (authError) {
         console.error('Auth error:', authError);
-        return { 
-          success: false, 
-          error: authError.message === 'Invalid login credentials' 
-            ? 'Email atau password salah' // Pesan diubah
-            : handleSupabaseError(authError) || 'Login gagal'
-        };
+        let errorMessage = 'Login gagal';
+        
+        // Handle specific auth errors
+        switch (authError.message) {
+          case 'Invalid login credentials':
+            errorMessage = 'Email atau password salah';
+            break;
+          case 'Email not confirmed':
+            errorMessage = 'Email belum dikonfirmasi';
+            break;
+          case 'Too many requests':
+            errorMessage = 'Terlalu banyak percobaan login. Coba lagi nanti';
+            break;
+          case 'User not found':
+            errorMessage = 'Email tidak ditemukan';
+            break;
+          default:
+            errorMessage = handleSupabaseError(authError) || 'Login gagal';
+        }
+        
+        return { success: false, error: errorMessage };
       }
 
       if (data.user) {
@@ -278,20 +296,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
           await supabase.auth.signOut();
           return { 
             success: false, 
-            error: 'Gagal mengambil data profil. Silakan coba lagi.' 
+            error: 'Gagal mengambil data profil. Pastikan akun Anda terdaftar di sistem.' 
           };
         }
 
         if (profile) {
           console.log('Profile set after login:', profile);
-          setUser(profile as Profile);
+          // Tambahkan email dari auth jika tidak ada di profile
+          const profileWithEmail = {
+            ...profile,
+            email: profile.email || data.user.email || ''
+          };
+          setUser(profileWithEmail as Profile);
           toast.success(`Selamat datang, ${profile.full_name}!`);
           return { success: true };
         } else {
           await supabase.auth.signOut();
           return { 
             success: false, 
-            error: 'Profil pengguna tidak ditemukan.' 
+            error: 'Profil pengguna tidak ditemukan dalam sistem.' 
           };
         }
       } else {
@@ -299,7 +322,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (error) {
       console.error('Sign in error:', error);
-      return { success: false, error: 'Terjadi kesalahan umum saat login' };
+      return { success: false, error: 'Terjadi kesalahan saat login. Silakan coba lagi.' };
     } finally {
       setLoading(false);
     }
