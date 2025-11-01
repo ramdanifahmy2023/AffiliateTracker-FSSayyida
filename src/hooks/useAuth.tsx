@@ -190,16 +190,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        // Penting: Pastikan kolom yang diambil di sini sesuai dengan type Profile Anda
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('*')
+          .select('*') 
           .eq('id', session.user.id)
           .single();
 
         if (error) {
+          // Logikanya, jika sudah SIGNED_IN di auth.users tapi GAGAL ambil profiles,
+          // berarti profil belum ada atau RLS bermasalah (yang sudah kita perbaiki).
+          // Untuk amannya, kita paksa SIGN OUT agar user mencoba lagi.
           await supabase.auth.signOut();
           setUser(null);
+          // throw error; // Kita tidak melempar error untuk menghindari crash
         } else {
+          // Asumsi: kolom 'role' dari Supabase di-mapping dengan benar ke 'position' di type Profile Anda.
+          // Berdasarkan type Profile Anda:
+          // type Profile = { ..., position: UserPosition; ... };
+          // Tetapi tabel Supabase Anda memiliki kolom 'role' dan 'position'. 
+          // Kita asumsikan 'position' adalah kolom yang benar.
           setUser(profile as Profile);
         }
       } else {
@@ -212,67 +222,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false);
     }
   };
-const signIn = async (username: string, password: string) => {
+
+  /**
+   * FUNGSI SIGN IN YANG TELAH DIPERBAIKI
+   * HANYA MENGGUNAKAN signInWithPassword dan TIDAK ADA LOGIKA signUp OTOMATIS
+   */
+  const signIn = async (username: string, password: string) => {
     try {
       setLoading(true);
 
-      // Kita tetap gunakan 'hack' email internal Anda
-      const email = `${username}@login.internal`; //
+      // Ubah username menjadi email internal sesuai kebutuhan Supabase Auth
+      const email = `${username}@login.internal`; 
       
-      // HANYA coba login
-      const { error: authError } = await supabase.auth.signInWithPassword({ //
+      // Lakukan Sign In
+      const { error: authError } = await supabase.auth.signInWithPassword({ 
         email,
         password
       });
 
       if (authError) {
-        // JANGAN mendaftar (sign up) pengguna baru secara otomatis.
-        // Hapus blok 'if (authError)' yang berisi supabase.auth.signUp
-        return { success: false, error: handleSupabaseError(authError) };
+        // Jika login gagal (e.g., kredensial salah, user tidak terdaftar di auth.users)
+        return { success: false, error: handleSupabaseError(authError) || 'Login gagal, periksa kredensial.' };
       }
-
-      // Hapus bagian 'ensure profile exists' dan 'insert' profil minimal.
-      // Kita akan menangani pembuatan profil secara manual di langkah berikutnya.
-
-      await checkUser(); // Panggil checkUser secara eksplisit
+      
+      // Jika Sign In berhasil, panggil checkUser untuk mengambil data profil
+      await checkUser(); 
       toast.success(`Selamat datang, ${username}!`);
       return { success: true };
     } catch (error) {
       console.error('Sign in error:', error);
-      return { success: false, error: 'Terjadi kesalahan saat login' };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-      // Ensure profile exists
-      const { data: sessionData } = await supabase.auth.getSession();
-      const authUser = sessionData.session?.user;
-      if (!authUser) return { success: false, error: 'Gagal mendapatkan sesi autentikasi' };
-
-      const { data: existing, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', authUser.id)
-        .single();
-
-      if (profileError || !existing) {
-        // Seed minimal profile data
-        await supabase.from('profiles').insert({
-          id: authUser.id,
-          full_name: username,
-          username,
-          role: 'staff',
-          position: 'staff_host_live'
-        } as any);
-      }
-
-      await checkUser();
-      toast.success(`Selamat datang, ${username}!`);
-      return { success: true };
-    } catch (error) {
-      console.error('Sign in error:', error);
-      return { success: false, error: 'Terjadi kesalahan saat login' };
+      return { success: false, error: 'Terjadi kesalahan umum saat login' };
     } finally {
       setLoading(false);
     }
@@ -295,6 +274,8 @@ const signIn = async (username: string, password: string) => {
     const pagePermissions = ACCESS_CONTROL[page as keyof typeof ACCESS_CONTROL];
     if (!pagePermissions) return false;
     const userPermissions = pagePermissions[user.position];
+    // Pastikan userPermissions adalah array sebelum menggunakan .includes
+    if (!Array.isArray(userPermissions)) return false; 
     return userPermissions.includes(permission);
   };
 
