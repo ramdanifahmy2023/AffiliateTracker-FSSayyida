@@ -217,7 +217,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       setLoading(true);
 
-      const email = `${username}@internal.app`;
+      const email = `${username}@login.internal`;
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
