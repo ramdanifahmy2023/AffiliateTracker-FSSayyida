@@ -5,12 +5,12 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { AlertCircle, Eye, EyeOff, LogIn, Building2 } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, LogIn, Building2, Mail } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Loader2 } from 'lucide-react';
 
 interface LoginFormData {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -18,7 +18,7 @@ export default function Login() {
   const { user, signIn, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState<LoginFormData>({
-    username: '',
+    email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -62,8 +62,15 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.username || !formData.password) {
-      setError('Username dan password wajib diisi');
+    if (!formData.email || !formData.password) {
+      setError('Email dan password wajib diisi');
+      return;
+    }
+
+    // Validasi format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Format email tidak valid');
       return;
     }
 
@@ -71,7 +78,7 @@ export default function Login() {
     setError('');
 
     try {
-      const result = await signIn(formData.username, formData.password);
+      const result = await signIn(formData.email, formData.password);
       
       if (result.success) {
         // Login berhasil, navigasi akan ditangani oleh useEffect di atas
@@ -110,7 +117,7 @@ export default function Login() {
               Masuk ke Akun Anda
             </CardTitle>
             <CardDescription className="text-center">
-              Gunakan username dan password yang telah diberikan
+              Gunakan email dan password yang telah diberikan
             </CardDescription>
           </CardHeader>
           
@@ -124,21 +131,24 @@ export default function Login() {
                 </Alert>
               )}
 
-              {/* Username Field */}
+              {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  name="username"
-                  type="text"
-                  placeholder="Masukkan username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  className="h-11"
-                  autoComplete="username"
-                  disabled={loading}
-                  required
-                />
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="contoh@email.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="h-11 pl-10"
+                    autoComplete="email"
+                    disabled={loading}
+                    required
+                  />
+                </div>
               </div>
 
               {/* Password Field */}
@@ -198,9 +208,9 @@ export default function Login() {
                 Demo Credentials:
               </p>
               <div className="text-xs text-gray-600 space-y-1">
-                <div>• Superadmin: <code className="bg-white px-1 rounded">superadmin</code> / <code className="bg-white px-1 rounded">password123</code></div>
-                <div>• Leader: <code className="bg-white px-1 rounded">leader_alpha</code> / <code className="bg-white px-1 rounded">password123</code></div>
-                <div>• Staff: <code className="bg-white px-1 rounded">host1</code> / <code className="bg-white px-1 rounded">password123</code></div>
+                <div>• Superadmin: <code className="bg-white px-1 rounded">superadmin@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
+                <div>• Leader: <code className="bg-white px-1 rounded">leader@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
+                <div>• Staff: <code className="bg-white px-1 rounded">staff@company.com</code> / <code className="bg-white px-1 rounded">password123</code></div>
               </div>
             </div>
           </CardContent>
