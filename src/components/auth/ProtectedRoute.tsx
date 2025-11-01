@@ -30,7 +30,7 @@ export default function ProtectedRoute({
 
   if (!user) {
     // Redirect to login while preserving the intended destination
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Check page-specific permissions if required
@@ -38,7 +38,7 @@ export default function ProtectedRoute({
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-6xl mb-4">🚫</div>
+          <div className="text-6xl mb-4">🙅</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Akses Ditolak
           </h2>
